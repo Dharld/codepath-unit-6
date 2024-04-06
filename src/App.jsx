@@ -9,8 +9,16 @@ import categoryIcon from "./assets/category-icon.png";
 import searchPrimary from "./assets/search-primary.png";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { Pie } from "react-chartjs-2";
 
 const INITIAL_RANGE = [0, 1000];
+const OPTIONS = {
+  plugins: {
+    legend: {
+      display: false,
+    },
+  },
+};
 
 function App() {
   const [value, setValue] = useState(INITIAL_RANGE);
@@ -22,6 +30,8 @@ function App() {
   const [products, setProducts] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [rating, setRating] = useState(3);
+  const [productsPerCategory, setProductsPerCategory] = useState(new Map());
+  const [chartDatas, setChartDatas] = useState(null);
 
   useEffect(() => {
     async function fetchCategories() {
@@ -38,6 +48,16 @@ function App() {
       try {
         const url = `${import.meta.env.VITE_API_URL}/products`;
         const products = await axios.get(url).then((res) => res.data);
+        const productsGroupedByCategory = products.reduce((acc, product) => {
+          if (!acc[product.category]) {
+            acc[product.category] = [];
+          }
+          acc[product.category].push(product);
+          return acc;
+        }, {});
+        setProductsPerCategory(
+          new Map(Object.entries(productsGroupedByCategory))
+        );
         return products;
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -64,6 +84,43 @@ function App() {
     fetchProductAndCategories();
   }, []);
 
+  useEffect(() => {
+    if (productsPerCategory.size > 0) {
+      console.log(productsPerCategory);
+      let totals = [];
+      for (let value of productsPerCategory.values()) {
+        totals.push(value.length);
+      }
+      const data = {
+        labels: Array.from(productsPerCategory.keys()).map(
+          (l) => l[0].toUpperCase() + l.slice(1)
+        ),
+        datasets: [
+          {
+            data: totals,
+            backgroundColor: [
+              "rgba(255, 99, 132, 0.2)",
+              "rgba(54, 162, 235, 0.2)",
+              "rgba(255, 206, 86, 0.2)",
+              "rgba(75, 192, 192, 0.2)",
+              "rgba(153, 102, 255, 0.2)",
+              "rgba(255, 159, 64, 0.2)",
+            ],
+            borderColor: [
+              "rgba(255, 99, 132, 1)",
+              "rgba(54, 162, 235, 1)",
+              "rgba(255, 206, 86, 1)",
+              "rgba(75, 192, 192, 1)",
+              "rgba(153, 102, 255, 1)",
+              "rgba(255, 159, 64, 1)",
+            ],
+            borderWidth: 1,
+          },
+        ],
+      };
+      setChartDatas(data);
+    }
+  }, [productsPerCategory]);
   useEffect(() => {
     async function fetchProducts() {
       try {
@@ -129,6 +186,11 @@ function App() {
       ) : (
         <>
           <div className="sidebar">
+            <div className="chart-wrapper">
+              <div className="chart">
+                {chartDatas && <Pie data={chartDatas} options={OPTIONS} />}
+              </div>
+            </div>
             <div className="category-wrapper">
               <div className="title">
                 <img src={categoryIcon} alt="" />
@@ -206,6 +268,7 @@ function App() {
                   onChange={handleSearchChange}
                 />
               </div>
+
               <h3 className="curr-category">
                 {activeCategory[0].toUpperCase() + activeCategory.slice(1)}
               </h3>

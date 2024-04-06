@@ -10,6 +10,8 @@ import searchPrimary from "./assets/search-primary.png";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Pie } from "react-chartjs-2";
+import "chart.js/auto";
+import { useNavigate, Outlet } from "react-router-dom";
 
 const INITIAL_RANGE = [0, 1000];
 const OPTIONS = {
@@ -32,7 +34,15 @@ function App() {
   const [rating, setRating] = useState(3);
   const [productsPerCategory, setProductsPerCategory] = useState(new Map());
   const [chartDatas, setChartDatas] = useState(null);
+  const navigate = useNavigate();
 
+  function goToProduct(id, product) {
+    navigate("/products/" + id, {
+      state: {
+        product,
+      },
+    });
+  }
   useEffect(() => {
     async function fetchCategories() {
       try {
@@ -146,6 +156,7 @@ function App() {
 
             return newProducts;
           });
+        console.log(productsMatched);
         setProducts(productsMatched);
         setLoadingProducts(false);
       } catch (error) {
@@ -305,7 +316,11 @@ function App() {
                   <div className="main-body">
                     <div className="products">
                       {products.map((p) => (
-                        <div className="product" key={p.id}>
+                        <div
+                          className="product"
+                          key={p.id}
+                          onClick={() => goToProduct(p.id, p)}
+                        >
                           <div className="product-img">
                             <img src={p.image} alt={p.description} />
                           </div>
@@ -335,6 +350,7 @@ function App() {
           </main>
         </>
       )}
+      <Outlet />
     </div>
   );
 }
